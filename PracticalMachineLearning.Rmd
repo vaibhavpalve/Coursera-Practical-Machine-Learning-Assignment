@@ -1,0 +1,123 @@
+---
+title: "Practical Machine Learning Prediction Assignmen"
+author: "Vaibhav Palve"
+date: "11 May 2016"
+output: html_document
+---
+
+Here is the introduction to the problem : 
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+### Data Source
+
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
+
+### Load the Data
+
+```{r}
+
+# Get the required set of libraries
+
+library(rpart)
+library(randomForest)
+library(e1071)
+library(caret)
+
+
+# set the Working directory
+setwd("E:/Downloads/")
+
+
+# Load the data set
+
+# Before loading the dataset cleanse the data
+# Replace all the blanks,blank spaces and '$DIV/0!' with NA 
+
+data <- read.csv("pml-training.csv",header=T,na.strings=c("","NA","#DIV/0!"))
+
+# Follow the same for the Test set 
+test <- read.csv("pml-testing.csv",header=T,na.strings=c("","NA","#DIV/0!"))
+
+```
+### Clean the Data
+
+Now, In order to clean the data, we need to summarise and understand the data. This can be done by the summary function in R. Also visualise the first few records of the data set which will help us to understand the data better.
+After visualizing the data, we can remove the columns having 95% value as NA. So we can exclude those columns from our data set
+ 
+```{r}
+summary(data)
+
+# The first few records of the data set.
+head(data)
+
+# Now getting the list of columns having 95% of its value as 'NA'
+varNa <- which(colMeans(is.na(data))>0.95)
+
+# Creating a new data set by excluding the columns 
+data_new <- data[,-varNa]
+
+# Also the first 7 columns of the dataset doesn't play any role in the prediction.
+data_new <- data_new[,-c(1:7)]
+
+```
+### Partition the Data
+
+Here I withhold 25% of the dataset for testing after the final model is constructed.
+
+```{r}
+
+# Using the functionality of the caret package, we partition the data
+inTrain <- createDataPartition(y=data_new$classe,p=0.75,list=F)
+
+# The training set is 75% of the original data and rest 25% is the test data.
+training <- data_new[inTrain,]
+validation <- data_new[-inTrain,]
+
+```
+
+### Algorithm 
+```{r}
+# Applying random forest to the data set based on the analysis and obervation made above
+model <- randomForest(classe~.,data=training)
+
+# Now to get the variable importance
+varImp(model)
+
+# Predicting the validation dataset with the model built
+result <- predict(model,validation)
+
+# Confufion matrix to see what the accuracy of the model is.
+confusionMatrix(result,validation$classe)
+
+```
+
+So for the validation data set I got a accuracy of 0.99 which seems perfect.
+
+Now predicting for the Test data set. But before that I also need to cleanse the test data set and get the columns I used in train data. So following the same steps.
+
+```{r}
+
+# Removing the columns with 95% NA field's
+test_new <- test[,-varNa]
+
+# Removing the first 7 columns which were also not part of the train model.
+test_new <- test_new[,-c(1:7)]
+
+# Predicting the result for the final test data set.
+result <- predict(model,test)
+
+
+```
+
+So the final result is as mentioned below : 
+```{r}
+# Printing the Result
+result
+```
